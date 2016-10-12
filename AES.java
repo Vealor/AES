@@ -8,7 +8,6 @@ class Encrypter {
     private BufferedReader inFile;
     private FileOutputStream outFile;
 
-
     public Encrypter(byte[] key, String inFileName) throws FileNotFoundException {
         this.key = key;
         this.inFile = new BufferedReader(new FileReader(inFileName));
@@ -21,8 +20,6 @@ class Encrypter {
         System.arraycopy(this.key, 0, expandedKey, 0, this.key.length);
         this.expandKey(expandedKey);
         
-        System.out.println(Arrays.toString(expandedKey));
-        
         byte[] buffer;
         for(String line = this.inFile.readLine(); line != null; line = this.inFile.readLine()) {
             buffer = javax.xml.bind.DatatypeConverter.parseHexBinary(line);
@@ -33,36 +30,23 @@ class Encrypter {
             
             for(int i = 0; i < 14; i++){
                 if(i == 0) {
-                    // this.addRoundKey(buffer);
+                    this.addRoundKey(buffer, expandedKey, i);
                 }
                 
                 if(i == 13) {
                     // Final round (no mix columns):
                     // this.subBytes(buffer);
                     // this.shiftRows(buffer);
-                    // this.addRoundKey(buffer);
+                    this.addRoundKey(buffer);
                 } else {
                     // non-final round:
                     // this.subBytes(buffer);
                     // this.shiftRows(buffer);
                     // this.mixColumns(buffer);
-                    // this.addRoundKey(buffer);
+                    this.addRoundKey(buffer);
                 }   
             }
         }
-    }
-    
-    public static Byte[] toByteArr(byte[] array) {
-        if (array == null) {
-            return null;
-        } else if (array.length == 0) {
-            return new Byte[0];
-        }
-        final Byte[] result = new Byte[array.length];
-        for (int i = 0; i < array.length; i++) {
-            result[i] = new Byte(array[i]);
-        }
-        return result;
     }
     
     private void keyExpansionCore(byte[] prevKey, int i) {
@@ -84,7 +68,6 @@ class Encrypter {
         prevKey[0] ^= this.rcon[i];
     }
     
-    // TODO: finish this method, only does core expansion currently.
     private void expandKey(byte[] fullKey) {
         int ndx = 32; // tracks where in the expanded key array we are.
         byte[] temp = new byte[4];
@@ -95,6 +78,7 @@ class Encrypter {
             keyExpansionCore(temp, i);
             System.arraycopy(temp, 0, fullKey, ndx, 4);
             
+            // TODO: abstract this loop into function
             for(int j = 0; j < 4; j++) {
                 fullKey[ndx + j] ^= fullKey[ndx - 32 + j];
             }
@@ -104,6 +88,7 @@ class Encrypter {
             for(int j = 0; j < 3; j++) {
                 System.arraycopy(fullKey, ndx - 4, fullKey, ndx, 4);
 
+                // TODO: abstract this loop into function
                 for(int k = 0; k < 4; k++) {
                     fullKey[ndx + j] ^= fullKey[ndx - 32 + j];   
                 }
@@ -117,9 +102,11 @@ class Encrypter {
             }
             ndx += 4;
             
+            // TODO: abstract this loop into function
             for(int j = 0; j < 3; j++) {
                 System.arraycopy(fullKey, ndx - 4, fullKey, ndx, 4);
 
+                // TODO: abstract this loop into function
                 for(int k = 0; k < 4; k++) {
                     fullKey[ndx + k] ^= fullKey[ndx - 32 + k];   
                 }
@@ -131,24 +118,30 @@ class Encrypter {
         keyExpansionCore(temp, i);
         System.arraycopy(temp, 0, fullKey, ndx, 4);
         
+        // TODO: abstract this loop into function
         for(int j = 0; j < 4; j++) {
             fullKey[ndx + j] ^= fullKey[ndx - 32 + j];
         }
         
         ndx += 4;
         
+        // TODO: abstract this loop into function
         for(int j = 0; j < 3; j++) {
             System.arraycopy(fullKey, ndx - 4, fullKey, ndx, 4);
 
+            // TODO: abstract this loop into function
             for(int k = 0; k < 4; k++) {
                 fullKey[ndx + j] ^= fullKey[ndx - 32 + j];   
             }
             ndx += 4;
         }
     }
-    
-    private void addRoundKey(byte[] input) {
-        System.out.println("addRoundKey unimplemented");
+
+    private void addRoundKey(byte[] input, byte[] fullKey, int roundNum) {
+        // input length is checked to be 16
+        for(int i = 0; i < input.length; i++) {
+            input[i] ^= fullKey[roundNum * input.length + i];
+        }
     }
     
     private void subBytes(byte[] input) {
