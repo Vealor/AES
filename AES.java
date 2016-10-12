@@ -17,10 +17,11 @@ class Encrypter {
 
     public void encrypt() throws IOException {
         
-        List<Byte> expandedKey = new ArrayList<Byte>();
-        expandedKey.addAll(Arrays.asList(toByteArr(this.key)));
-        expandedKey.addAll(keyExpansion(this.key));
+        byte[] expandedKey = new byte[240];
+        System.arraycopy(this.key, 0, expandedKey, 0, this.key.length);
+        this.expandKey(expandedKey);
         
+        System.out.println(Arrays.toString(expandedKey));
         
         byte[] buffer;
         for(String line = this.inFile.readLine(); line != null; line = this.inFile.readLine()) {
@@ -74,25 +75,76 @@ class Encrypter {
         }
         prevKey[3] = temp;
 
+        // apply s-box
         for(int j = 0; j < 4; j++) {
             prevKey[j] = this.sBox[prevKey[j] + 128];
         }
 
+        // xor first byte with rcon
         prevKey[0] ^= this.rcon[i];
     }
     
     // TODO: finish this method, only does core expansion currently.
-    private List<Byte> keyExpansion(byte[] initKey) {
-        List<Byte> roundKeys = new ArrayList<Byte>();
-        byte[] temp = Arrays.copyOfRange(initKey, initKey.length - 4, initKey.length);
+    private void expandKey(byte[] fullKey) {
+        int ndx = 32; // tracks where in the expanded key array we are.
+        byte[] temp = new byte[4];
     
-        for(int i = 1; i < 61; i++) {
-            // generate 4 bytes of key
+        int i;
+        for(i = 1; i < 7; i++) {
+            System.arraycopy(fullKey, ndx - 4, temp, 0, 4);
             keyExpansionCore(temp, i);
-            roundKeys.addAll(Arrays.asList(toByteArr(temp)));
+            System.arraycopy(temp, 0, fullKey, ndx, 4);
+            
+            for(int j = 0; j < 4; j++) {
+                fullKey[ndx + j] ^= fullKey[ndx - 32 + j];
+            }
+            ndx += 4;
+
+            // TODO: abstract this loop into function
+            for(int j = 0; j < 3; j++) {
+                System.arraycopy(fullKey, ndx - 4, fullKey, ndx, 4);
+
+                for(int k = 0; k < 4; k++) {
+                    fullKey[ndx + j] ^= fullKey[ndx - 32 + j];   
+                }
+                ndx += 4;
+            }
+            
+            System.arraycopy(fullKey, ndx - 4, fullKey, ndx, 4);
+            for(int j = 0; j < 4; j++) {
+                fullKey[ndx + j] = this.sBox[fullKey[ndx + j] + 128];
+                fullKey[ndx + j] ^= fullKey[ndx - 32 + j];
+            }
+            ndx += 4;
+            
+            for(int j = 0; j < 3; j++) {
+                System.arraycopy(fullKey, ndx - 4, fullKey, ndx, 4);
+
+                for(int k = 0; k < 4; k++) {
+                    fullKey[ndx + k] ^= fullKey[ndx - 32 + k];   
+                }
+                ndx += 4;
+            }
         }
         
-        return roundKeys;
+        System.arraycopy(fullKey, ndx - 4, temp, 0, 4);
+        keyExpansionCore(temp, i);
+        System.arraycopy(temp, 0, fullKey, ndx, 4);
+        
+        for(int j = 0; j < 4; j++) {
+            fullKey[ndx + j] ^= fullKey[ndx - 32 + j];
+        }
+        
+        ndx += 4;
+        
+        for(int j = 0; j < 3; j++) {
+            System.arraycopy(fullKey, ndx - 4, fullKey, ndx, 4);
+
+            for(int k = 0; k < 4; k++) {
+                fullKey[ndx + j] ^= fullKey[ndx - 32 + j];   
+            }
+            ndx += 4;
+        }
     }
     
     private void addRoundKey(byte[] input) {
