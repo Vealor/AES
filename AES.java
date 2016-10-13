@@ -3,6 +3,7 @@ import java.util.*;
 
 // TODO: 
 //   -implement mixColumns and iMixColumns methods
+//   -fix subbytes and isubbytes
 //   -add some function descriptions
 //   -better name for Utils class?
 //   -at a step to write to output file
@@ -239,8 +240,6 @@ class Encrypter {
         System.arraycopy(this.key, 0, expandedKey, 0, this.key.length);
         Utils.expandKey(expandedKey);
         
-        System.out.println(Arrays.toString(expandedKey));
-        
         byte[] buffer;
         for(String line = this.inFile.readLine(); line != null; line = this.inFile.readLine()) {
             buffer = javax.xml.bind.DatatypeConverter.parseHexBinary(line);
@@ -249,25 +248,23 @@ class Encrypter {
                 System.exit(1);
             }
             
+            Utils.addRoundKey(buffer, expandedKey, 0);
+            
             for(int i = 0; i < 14; i++){
-                if(i == 0) {
-                    // Initial round
-                    Utils.addRoundKey(buffer, expandedKey, i);
-                }
-                
-                if(i == 13) {
-                    // Final round (no mix columns):
-                    Utils.subBytes(buffer);
-                    Utils.shiftRows(buffer);
-                    Utils.addRoundKey(buffer, expandedKey, i);
-                } else {
-                    // non-final round:
-                    Utils.subBytes(buffer);
-                    Utils.shiftRows(buffer);
-                    Utils.mixColumns(buffer);
-                    Utils.addRoundKey(buffer, expandedKey, i);
-                }   
+                // non-final round:
+                // Utils.subBytes(buffer);
+                Utils.shiftRows(buffer);
+                // Utils.mixColumns(buffer);
+                Utils.addRoundKey(buffer, expandedKey, i);
             }
+            
+            // Utils.subBytes(buffer);
+            Utils.shiftRows(buffer);
+            Utils.addRoundKey(buffer, expandedKey, 14);
+            
+            String output = javax.xml.bind.DatatypeConverter.printHexBinary(buffer);
+            output += "\n";
+            this.outFile.write(output.getBytes());
         }
     }
 }
@@ -297,27 +294,23 @@ class Decrypter {
                 System.exit(1);
             }
             
-            for(int i = 0; i < 14; i++){
-                if(i == 0) {
-                    // Initial round
-                    Utils.addRoundKey(buffer, expandedKey, i);
-                }
-                
-                if(i == 13) {
-                    // Final round (no mix columns):
-                    System.out.println(Arrays.toString(buffer));
-                    Utils.iShiftRows(buffer);
-                    System.out.println(Arrays.toString(buffer));
-                    Utils.iSubBytes(buffer);
-                    Utils.addRoundKey(buffer, expandedKey, i);
-                } else {
-                    // non-final round:
-                    Utils.iShiftRows(buffer);
-                    Utils.iSubBytes(buffer);
-                    Utils.addRoundKey(buffer, expandedKey, i);
-                    Utils.iMixColumns(buffer);
-                }   
+            // Utils.iSubBytes(buffer);
+            Utils.addRoundKey(buffer, expandedKey, 14);
+            Utils.iShiftRows(buffer);
+            
+            for(int i = 13; i >= 0; i--){
+                // non-final round:
+                Utils.addRoundKey(buffer, expandedKey, i);
+                // Utils.iMixColumns(buffer);
+                Utils.iShiftRows(buffer);
+                // Utils.iSubBytes(buffer);
             }
+            
+            Utils.addRoundKey(buffer, expandedKey, 0);
+            
+            String output = javax.xml.bind.DatatypeConverter.printHexBinary(buffer);
+            output += "\n";
+            this.outFile.write(output.getBytes());
         }
     }
 }
