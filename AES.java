@@ -4,7 +4,7 @@ import java.util.*;
 // TODO: 
 //   -look into decryption and see which methods can be pulled out into a static utility class
 //   -actually do decryption
-//   - implement multiplication in finite fields for the general case (not really)
+//   -implement multiplication in finite fields for the general case (not really)
 
 class Encrypter {
     private static byte[] sBox = javax.xml.bind.DatatypeConverter.parseHexBinary("637C777BF26B6FC53001672BFED7AB76CA82C97DFA5947F0ADD4A2AF9CA472C0B7FD9326363FF7CC34A5E5F171D8311504C723C31896059A071280E2EB27B27509832C1A1B6E5AA0523BD6B329E32F8453D100ED20FCB15B6ACBBE394A4C58CFD0EFAAFB434D338545F9027F503C9FA851A3408F929D38F5BCB6DA2110FFF3D2CD0C13EC5F974417C4A77E3D645D197360814FDC222A908846EEB814DE5E0BDBE0323A0A4906245CC2D3AC629195E479E7C8376D8DD54EA96C56F4EA657AAE08BA78252E1CA6B4C6E8DD741F4BBD8B8A703EB5664803F60E613557B986C11D9EE1F8981169D98E949B1E87E9CE5528DF8CA1890DBFE6426841992D0FB054BB16");
@@ -164,17 +164,20 @@ class Encrypter {
         }
     }
     
-    // input in form:
-    // b0 b4 b8 b12
+    // rotate input should have form:
+    // [b0 b4 b8 b12
     // b1 b5 b9 b13
     // b2 b6 b10 b14
-    // b3 b7 b11 b15
-    // CURRENTLY NOT WORKING SEE https://github.com/rishidewan33/Advanced-Encryption-Standard-Algorithm/blob/master/src/AES.java
+    // b3 b7 b11 b15]
+    //
+    // where shiftRows input is:
+    // [b0 b1 b2 b3 b4 b5 b6 b8 b9 b10 b11 b12 b13 b14 b15]
     private void shiftRows(byte[] input) {
         byte temp;
         byte[][] shifted = new byte[4][4];
         
         // get the input into the same format as wikipedia
+        // TODO pull into reusable function if used elsewhere
         for(int i = 0; i < 4; i++) {
             for(int j = 0; j < 4; j++) {
                 shifted[i][j] = input[4 * j + i];
@@ -182,10 +185,11 @@ class Encrypter {
         }
         
         for(int i = 0; i < 4; i++) {
-            this.shiftLeft(shifted[i], i);
+            this.rotateLeft(shifted[i], i);
         }
   
         // and back to a flat array
+        // TODO pull into reusable function if used elsewhere
         for(int i = 0; i < 4; i++) {
             for(int j = 0; j < 4; j++) {
                 input[4 * j + i] = shifted[i][j];
@@ -193,7 +197,7 @@ class Encrypter {
         }
     }
     
-    private void shiftLeft(byte[] input, int times) {
+    private void rotateLeft(byte[] input, int times) {
         if (times % 4 == 0) {
             return;
         }
